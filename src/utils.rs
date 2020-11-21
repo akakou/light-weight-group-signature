@@ -1,4 +1,3 @@
-#![no_std]
 use k256::{EncodedPoint, NonZeroScalar, ProjectivePoint, Scalar};
 
 use num_bigint::{BigUint, ToBigUint};
