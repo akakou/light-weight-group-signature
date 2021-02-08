@@ -1,21 +1,22 @@
 use crate::member::Member;
-use crate::utils::{biguint_to_scalar, generate_public_key, hash_sha256};
 
+use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
 use num_bigint::BigUint;
-
-use k256::{EncodedPoint, NonZeroScalar};
 use rand::{CryptoRng, RngCore};
+
+extern crate sha2;
+use sha2::Sha512;
 
 #[derive(Clone)]
 pub struct GroupManager {
-    pub s: NonZeroScalar,
-    pub pk: EncodedPoint,
+    pub s: Scalar,
+    pub pk: EdwardsPoint,
 }
 
 impl GroupManager {
-    pub fn random(rng: impl RngCore + CryptoRng) -> Self {
-        let s = NonZeroScalar::random(rng);
-        let pk = generate_public_key(&s);
+    pub fn random(rng: &mut (impl RngCore + CryptoRng)) -> Self {
+        let s = Scalar::random(rng);
+        let pk = constants::ED25519_BASEPOINT_POINT * s;
 
         Self { s: s, pk: pk }
     }
@@ -46,31 +47,26 @@ impl MemberRegister {
         }
     }
 
-    pub fn register(&self, rng: impl RngCore + CryptoRng) -> Member {
-        let mut id = self.id.to_bytes_le();
-        let s = self.gm.s.as_ref();
+    pub fn register(&self, rng: &mut (impl RngCore + CryptoRng)) -> Member {
+        let mut id = self.id.to_bytes_le().to_vec();
 
         // RMU = rMU·P
-        let r_sec = NonZeroScalar::random(rng);
-        let r_ref = r_sec.as_ref();
-
-        let r_pub = generate_public_key(&r_sec);
+        let r_sec = Scalar::random(rng);
+        let r_pub = constants::ED25519_BASEPOINT_POINT * r_sec;
 
         // SMU = rMU + H1(R||ID)·s
-        let mut hash = r_pub.as_bytes().to_vec();
+        let mut hash = r_pub.compress().to_bytes().to_vec();
         hash.push(00 as u8);
         hash.append(&mut id);
 
-        let hash = hash_sha256(&hash);
-        let hash = biguint_to_scalar(&hash);
+        let hash = Scalar::hash_from_bytes::<Sha512>(&hash);
 
-        let s = r_ref + hash * s;
-        let s = NonZeroScalar::new(s).unwrap();
+        let s_pub = r_sec + hash * self.gm.s;
 
         Member {
             id: self.id.clone(),
             r: r_pub,
-            s: s,
+            s: s_pub,
             pk_as: self.gm.pk,
             pk: None
         }

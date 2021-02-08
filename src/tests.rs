@@ -10,17 +10,14 @@ fn test_auth() {
     let msg = BigUint::from(10 as u32);
     let no_msg = BigUint::from(11 as u32);
 
-    let rng = rand::rngs::StdRng::from_seed([0; 32]);
-    let mut rng1 = rand::rngs::StdRng::from_seed([0; 32]);
-    let mut rng2 = rand::rngs::StdRng::from_seed([0; 32]);
-    let mut rng3 = rand::rngs::StdRng::from_seed([0; 32]);
+    let mut rng = rand::rngs::StdRng::from_seed([0; 32]);
 
-    let gm = GroupManager::random(rng);
+    let gm = GroupManager::random(&mut rng);
 
-    let mut member = gm.register_member(id, &mut rng1);
+    let mut member = gm.register_member(id, &mut rng);
     member.setup().unwrap();
 
-    let signature = member.sign(&msg, &mut rng2, &mut rng3);
+    let signature = member.sign(&msg, &mut rng);
     
     let verifier = Verifiyer::new(gm.pk);
     verifier.verify(&signature, &msg).unwrap();

@@ -1,43 +1,35 @@
 use crate::signature::GroupSignature;
-use crate::utils::{biguint_to_scalar, generate_public_key, hash_sha256};
 
-use k256::{EncodedPoint, NonZeroScalar, ProjectivePoint};
 use num_bigint::BigUint;
+use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
 use rand::{CryptoRng, RngCore};
+use sha2::Sha512;
 
 pub struct Member {
     pub id: BigUint,
-    pub r: EncodedPoint,
-    pub s: NonZeroScalar,
-    pub pk_as: EncodedPoint,
-    pub pk: Option<EncodedPoint>,
+    pub r: EdwardsPoint,
+    pub s: Scalar,
+    pub pk_as: EdwardsPoint,
+    pub pk: Option<EdwardsPoint>,
 }
 
 impl Member {
     pub fn setup(&mut self) -> Result<(), u32> {
-        let pk_as = self.pk_as.decode::<ProjectivePoint>().unwrap();
-        let r = self.r.decode::<ProjectivePoint>().unwrap();
-
-        // left
-        let left = generate_public_key(&self.s);
-        let left = left.decode::<ProjectivePoint>().unwrap();
-
-        // right
         // SMU = rMU + H1(RMU||ID)·s
-        let mut hash = self.r.as_bytes().to_vec();
+        let mut hash = self.r.compress().to_bytes().to_vec();
         hash.push(00 as u8);
         hash.append(&mut self.id.to_bytes_le());
 
-        let hash = hash_sha256(&hash);
-        let hash = biguint_to_scalar(&hash);
-        let hash = NonZeroScalar::new(hash).unwrap();
+        let hash = Scalar::hash_from_bytes::<Sha512>(&hash);
 
-        let right = r + pk_as * &*hash;
-
-        let pk: EncodedPoint = right.to_affine().into();
+        let pk = self.r + self.pk_as * hash;
         self.pk = Some(pk);
 
-        if left == right {
+        // checker
+        // checker = P * SMU
+        let checker = constants::ED25519_BASEPOINT_POINT * self.s;
+
+        if pk == checker {
             Ok(())
         }else{
             Err(1)
@@ -47,41 +39,36 @@ impl Member {
     pub fn sign(
         &mut self,
         msg: &BigUint,
-        rng1: impl CryptoRng + RngCore,
-        rng2: impl CryptoRng + RngCore,
+        rng: &mut (impl CryptoRng + RngCore),
     ) -> GroupSignature {
         let mut id = self.id.to_bytes_le();
-        let r_bin = self.r.as_bytes().to_vec();
         let mut msg_bin = msg.to_bytes_le();
-        let r_dash = self.r.decode::<ProjectivePoint>().unwrap();
 
         // A = a·P
-        let a_sec = NonZeroScalar::random(rng1);
-        let a_pub = generate_public_key(&a_sec);
-        let mut a_bin = a_pub.as_bytes().to_vec();
+        let a_sec = Scalar::random(rng);
+        let a_pub = constants::ED25519_BASEPOINT_POINT * a_sec;
+        let mut a_bin = a_pub.compress().to_bytes().to_vec();
 
         // c
-        let c = NonZeroScalar::random(rng2);
+        let c = Scalar::random(rng);
 
         // Ppid = c·H1(PIDMU‖RMU),
-        let mut hash = r_bin.clone();
+        let mut hash = self.r.compress().to_bytes().to_vec();
         hash.push(00 as u8);
         hash.append(&mut id);
 
-        let hash = hash_sha256(&hash);
-        let hash = biguint_to_scalar(&hash);
+        let hash = Scalar::hash_from_bytes::<Sha512>(&hash);
 
-        let p = c.as_ref() * &hash;
-        let p = NonZeroScalar::new(p).unwrap();
+
+        let p = c * hash;
         let p_bin = p.to_bytes().to_vec();
 
         // R' = c·R
-        let r_dash = r_dash * c.as_ref();
-        let r_dash: EncodedPoint = r_dash.to_affine().into();
-        let mut r_dash_bin = r_dash.as_bytes().to_vec();
+        let r_dash = self.r * c;
+        let mut r_dash_bin = r_dash.compress().to_bytes().to_vec();
 
         // S' = c·S
-        let s_dash = self.s.as_ref() * c.as_ref();
+        let s_dash = self.s * c;
 
         // H = H(P||msg||R'||A)
         let mut hash = p_bin;
@@ -89,12 +76,10 @@ impl Member {
         hash.append(&mut r_dash_bin);
         hash.append(&mut a_bin);
 
-        let hash = hash_sha256(&hash);
-        let hash = biguint_to_scalar(&hash);
+        let hash = Scalar::hash_from_bytes::<Sha512>(&hash);
 
         // Ver = a + S'·H
-        let ver = a_sec.as_ref() + s_dash * hash;
-        let ver = NonZeroScalar::new(ver).unwrap();
+        let ver = a_sec + s_dash * hash;
 
         GroupSignature {
             p: p,

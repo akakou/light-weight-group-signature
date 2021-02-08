@@ -1,33 +1,29 @@
-use crate::utils::{biguint_to_scalar, generate_public_key, hash_sha256};
 use crate::signature::GroupSignature;
 
-use k256::{EncodedPoint, ProjectivePoint};
+use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
 use num_bigint::BigUint;
+use sha2::Sha512;
+
 
 pub struct Verifiyer {
-    pub pk_as: EncodedPoint,
+    pub pk_as: EdwardsPoint,
 }
 
 impl Verifiyer {
-    pub fn new(pk_as: EncodedPoint) -> Self {
+    pub fn new(pk_as: EdwardsPoint) -> Self {
         Self {
             pk_as: pk_as
         }
     }
 
     pub fn verify(&self, signature: &GroupSignature, msg: &BigUint) -> Result<(), u32> {
-        let pk_as = self.pk_as.decode::<ProjectivePoint>().unwrap();
-        let r_dash = signature.r_dash.decode::<ProjectivePoint>().unwrap();
-        
         let mut msg_bin = msg.to_bytes_le();
-        let mut r_dash_bin = signature.r_dash.as_bytes().to_vec();
-        let mut a_bin = signature.a.as_bytes().to_vec();
+        let mut r_dash_bin = signature.r_dash.compress().to_bytes().to_vec();
+        let mut a_bin = signature.a.compress().as_bytes().to_vec();
         let p_bin = signature.p.to_bytes().to_vec();
 
-        let a = signature.a.decode::<ProjectivePoint>().unwrap();
-
         // PKmu = R'mu + Ppid * PK
-        let pk_mu = r_dash + pk_as * &*signature.p;
+        let pk_mu = signature.r_dash + self.pk_as * signature.p;
 
         // H = H(P||ts||R||A)
         let mut h_mu = p_bin;
@@ -35,15 +31,11 @@ impl Verifiyer {
         h_mu.append(&mut r_dash_bin);
         h_mu.append(&mut a_bin);
 
-        let h_mu = hash_sha256(&h_mu);
-        let h_mu = biguint_to_scalar(&h_mu);
-
+        let h_mu = Scalar::hash_from_bytes::<Sha512>(&h_mu);
+        
         // VerMU·P = A + PKMU·HMU
-        let left = generate_public_key(&signature.ver)
-            .decode::<ProjectivePoint>()
-            .unwrap();
-
-        let right = a + pk_mu * h_mu;
+        let left = constants::ED25519_BASEPOINT_POINT * signature.ver;
+        let right = signature.a + pk_mu * h_mu;
 
         if right == left {
             Ok(())

@@ -1,8 +1,9 @@
-use k256::{EncodedPoint, NonZeroScalar};
+use curve25519_dalek::{scalar::Scalar, edwards::EdwardsPoint};
+
 
 pub struct GroupSignature {
-    pub p: NonZeroScalar,
-    pub r_dash: EncodedPoint,
-    pub a: EncodedPoint,
-    pub ver: NonZeroScalar,
+    pub p: Scalar,
+    pub r_dash: EdwardsPoint,
+    pub a: EdwardsPoint,
+    pub ver: Scalar,
 }
