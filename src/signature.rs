@@ -1,5 +1,5 @@
-use curve25519_dalek::{scalar::Scalar, edwards::EdwardsPoint};
-use serde::{Serialize, Deserialize};
+use curve25519_dalek::{edwards::EdwardsPoint, scalar::Scalar};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GroupSignature {

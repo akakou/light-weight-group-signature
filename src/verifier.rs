@@ -4,16 +4,13 @@ use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
 use num_bigint::BigUint;
 use sha2::Sha512;
 
-
 pub struct Verifiyer {
     pub pk_as: EdwardsPoint,
 }
 
 impl Verifiyer {
     pub fn new(pk_as: EdwardsPoint) -> Self {
-        Self {
-            pk_as: pk_as
-        }
+        Self { pk_as }
     }
 
     pub fn verify(&self, signature: &GroupSignature, msg: &BigUint) -> Result<(), u32> {
@@ -32,7 +29,7 @@ impl Verifiyer {
         h_mu.append(&mut a_bin);
 
         let h_mu = Scalar::hash_from_bytes::<Sha512>(&h_mu);
-        
+
         // VerMU·P = A + PKMU·HMU
         let left = constants::ED25519_BASEPOINT_POINT * signature.ver;
         let right = signature.a + pk_mu * h_mu;

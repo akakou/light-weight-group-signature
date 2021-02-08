@@ -1,10 +1,10 @@
 use crate::signature::GroupSignature;
 
-use num_bigint::BigUint;
 use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
+use num_bigint::BigUint;
 use rand::{CryptoRng, RngCore};
+use serde::{Deserialize, Serialize};
 use sha2::Sha512;
-use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Member {
@@ -33,16 +33,12 @@ impl Member {
 
         if pk == checker {
             Ok(())
-        }else{
+        } else {
             Err(1)
         }
-   }
+    }
 
-    pub fn sign(
-        &mut self,
-        msg: &BigUint,
-        rng: &mut (impl CryptoRng + RngCore),
-    ) -> GroupSignature {
+    pub fn sign(&mut self, msg: &BigUint, rng: &mut (impl CryptoRng + RngCore)) -> GroupSignature {
         let mut id = self.id.to_bytes_le();
         let mut msg_bin = msg.to_bytes_le();
 
@@ -60,7 +56,6 @@ impl Member {
         hash.append(&mut id);
 
         let hash = Scalar::hash_from_bytes::<Sha512>(&hash);
-
 
         let p = c * hash;
         let p_bin = p.to_bytes().to_vec();
@@ -84,10 +79,10 @@ impl Member {
         let ver = a_sec + s_dash * hash;
 
         GroupSignature {
-            p: p,
-            r_dash: r_dash,
+            p,
+            r_dash,
             a: a_pub,
-            ver: ver,
+            ver,
         }
     }
 }

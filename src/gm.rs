@@ -18,14 +18,10 @@ impl GroupManager {
         let s = Scalar::random(rng);
         let pk = constants::ED25519_BASEPOINT_POINT * s;
 
-        Self { s: s, pk: pk }
+        Self { s, pk }
     }
 
-    pub fn register_member(
-        &self,
-        id: BigUint,
-        rng: &mut (impl CryptoRng + RngCore),
-    ) -> Member {
+    pub fn register_member(&self, id: BigUint, rng: &mut (impl CryptoRng + RngCore)) -> Member {
         let register = MemberRegister::random(self.clone(), id);
         register.register(rng)
     }
@@ -37,14 +33,8 @@ pub struct MemberRegister {
 }
 
 impl MemberRegister {
-    pub fn random(
-        gm: GroupManager,
-        id: BigUint,
-    ) -> Self {
-        Self {
-            id: id,
-            gm: gm,
-        }
+    pub fn random(gm: GroupManager, id: BigUint) -> Self {
+        Self { id, gm }
     }
 
     pub fn register(&self, rng: &mut (impl RngCore + CryptoRng)) -> Member {
@@ -68,7 +58,7 @@ impl MemberRegister {
             r: r_pub,
             s: s_pub,
             pk_as: self.gm.pk,
-            pk: None
+            pk: None,
         }
     }
 }

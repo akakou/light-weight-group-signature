@@ -18,12 +18,16 @@ fn test_auth() {
     member.setup().unwrap();
 
     let signature = member.sign(&msg, &mut rng);
-    
+
     let verifier = Verifiyer::new(gm.pk);
     verifier.verify(&signature, &msg).unwrap();
 
     match verifier.verify(&signature, &no_msg) {
-        Ok(_) => { assert!(false); }
-        Err(_) => { assert!(true); }
+        Ok(_) => {
+            assert!(false);
+        }
+        Err(_) => {
+            assert!(true);
+        }
     }
 }

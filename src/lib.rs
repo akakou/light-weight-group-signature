@@ -1,8 +1,8 @@
 #![no_std]
-pub mod signature;
-pub mod member;
-pub mod verifier;
 pub mod gm;
+pub mod member;
+pub mod signature;
 pub mod utils;
+pub mod verifier;
 
 mod tests;
