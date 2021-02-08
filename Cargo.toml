@@ -1,5 +1,5 @@
 [package]
-name = "ecc-group-signature"
+name = "light-weight-group-signature"
 version = "0.1.0"
 authors = ["akakou <akama@keio.jp>"]
 edition = "2018"
