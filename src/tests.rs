@@ -7,7 +7,6 @@ fn test_auth() {
     use rand_core::SeedableRng;
 
     let id = BigUint::from(10 as u32);
-    let h = BigUint::from(10 as u32);
     let msg = BigUint::from(10 as u32);
     let no_msg = BigUint::from(11 as u32);
 
@@ -18,7 +17,7 @@ fn test_auth() {
 
     let gm = GroupManager::random(rng);
 
-    let mut member = gm.register_member(id, h, &mut rng1);
+    let mut member = gm.register_member(id, &mut rng1);
     member.setup().unwrap();
 
     let signature = member.sign(&msg, &mut rng2, &mut rng3);

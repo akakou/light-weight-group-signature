@@ -9,15 +9,12 @@ pub struct Member {
     pub id: BigUint,
     pub r: EncodedPoint,
     pub s: NonZeroScalar,
-    pub pid: BigUint,
-    pub pwv: NonZeroScalar,
     pub pk_as: EncodedPoint,
     pub pk: Option<EncodedPoint>,
 }
 
 impl Member {
     pub fn setup(&mut self) -> Result<(), u32> {
-        let mut pid_bin = self.pid.to_bytes_be();
         let pk_as = self.pk_as.decode::<ProjectivePoint>().unwrap();
         let r = self.r.decode::<ProjectivePoint>().unwrap();
 
@@ -26,10 +23,10 @@ impl Member {
         let left = left.decode::<ProjectivePoint>().unwrap();
 
         // right
-        // SMU = rMU + H1(PIDMU‖RMU)·s
+        // SMU = rMU + H1(RMU||ID)·s
         let mut hash = self.r.as_bytes().to_vec();
         hash.push(00 as u8);
-        hash.append(&mut pid_bin);
+        hash.append(&mut self.id.to_bytes_le());
 
         let hash = hash_sha256(&hash);
         let hash = biguint_to_scalar(&hash);
@@ -53,9 +50,9 @@ impl Member {
         rng1: impl CryptoRng + RngCore,
         rng2: impl CryptoRng + RngCore,
     ) -> GroupSignature {
-        let mut pid_bin = self.pid.to_bytes_be();
+        let mut id = self.id.to_bytes_le();
         let r_bin = self.r.as_bytes().to_vec();
-        let mut msg_bin = msg.to_bytes_be();
+        let mut msg_bin = msg.to_bytes_le();
         let r_dash = self.r.decode::<ProjectivePoint>().unwrap();
 
         // A = a·P
@@ -69,7 +66,7 @@ impl Member {
         // Ppid = c·H1(PIDMU‖RMU),
         let mut hash = r_bin.clone();
         hash.push(00 as u8);
-        hash.append(&mut pid_bin);
+        hash.append(&mut id);
 
         let hash = hash_sha256(&hash);
         let hash = biguint_to_scalar(&hash);

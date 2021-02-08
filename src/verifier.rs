@@ -19,7 +19,7 @@ impl Verifiyer {
         let pk_as = self.pk_as.decode::<ProjectivePoint>().unwrap();
         let r_dash = signature.r_dash.decode::<ProjectivePoint>().unwrap();
         
-        let mut msg_bin = msg.to_bytes_be();
+        let mut msg_bin = msg.to_bytes_le();
         let mut r_dash_bin = signature.r_dash.as_bytes().to_vec();
         let mut a_bin = signature.a.as_bytes().to_vec();
         let p_bin = signature.p.to_bytes().to_vec();
