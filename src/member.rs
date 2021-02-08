@@ -6,7 +6,7 @@ use rand::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::Sha512;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Member {
     pub id: BigUint,
     pub r: EdwardsPoint,
