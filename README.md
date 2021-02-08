@@ -1,2 +1,3 @@
-# ecc-group-signature
-Original group signature with ECC
+# light-weight-group-signature
+
+Implementation of original light-weight group signature scheme.
