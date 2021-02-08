@@ -4,7 +4,9 @@ use num_bigint::BigUint;
 use curve25519_dalek::{constants, edwards::EdwardsPoint, scalar::Scalar};
 use rand::{CryptoRng, RngCore};
 use sha2::Sha512;
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Member {
     pub id: BigUint,
     pub r: EdwardsPoint,
